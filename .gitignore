@@ -26,6 +26,7 @@
 # Logs and databases #
 ######################
 *.log
+*.pid
 *.sql
 *.sqlite
 *.cfg
@@ -43,6 +44,7 @@ ehthumbs.db
 Thumbs.db
 *.cache
 *.pyc
+*.swp
 
 # Python junk #
 ###############

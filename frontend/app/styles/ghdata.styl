@@ -30,6 +30,7 @@ section#landing h1
   font-size: 25px
 
 section
+  width: 100%;
   padding: 36px
   float: right
   margin: 0 0 24px 0
@@ -73,14 +74,13 @@ section.unmaterialized
 
 @media (min-width: 1230px)
   #cards
+    width: 100%;
     padding-bottom: 100px
     position: relative
     z-index: 9
   
   section
     z-index: 10
-    width: calc(100% - 345px);
-    float: right;
   
   #landing
     width:100%
@@ -94,30 +94,74 @@ section.unmaterialized
   .fixed
     position: fixed !important
     top: 25px
-    
-  #controls
-    width: 325px
-    float: left
+
+.warn
+  color: #f00
+
+.warn:before
+  content: ' ⚠ '
+
+.below-chart
+  position: relative
+  z-index: 2
+  width: 100%;
+  margin: -50px 0 60px 0;
 
 cite.metric
   display: block;
   width:100%
   height: 0
-  float: right
-  text-align: center;
+  margin-left: 52px;
+  float: left
+  text-align: left;
   font-size: 12px
   color: #ccc
   font-style: normal
-  padding-left: 50px
-  margin: 200px 0px -185px 0
 
 cite.metric a
   color: #aaa
   text-decoration: underline;
+  
+.graph-download
+  background: 0
+  color: #ccc
+  font-size: 0.7em
+  height: 5px !important
+  line-height: 30px;
+  float: right
+  margin: -7px 7px 0 0 !important;
+  padding: 3px !important;
+  
+.graph-download:hover
+  background: #eee;
+  color: #000
 
 .linechart
+  position: relative
+  z-index: 1
   height: 210px
   margin-bottom: 30px
+
+.role-title > text
+  font-size: 20px !important
+  font-weight: normal !important
+
+.bubblechart
+  width: 100%;
+
+.bubblechart *
+  overflow: visible !important;
+
+// .stackedbarchart
+
+.stackedbarchart *
+  overflow: visible !important;
+  width: 100%;
+  // position: relative
+  margin-bottom: 30px
+
+.bubblechart svg
+  width: 100%;
 
 .mg-line-legend
   display: none
@@ -129,8 +173,8 @@ cite.metric a
   height: 0
   top: 31px
   left: 55px
-  fontSize: 14px
-  fontWeight: bold
+  font-size: 14px
+  font-weight: bold
   opacity: 0.8
 
 .mg-baselines
@@ -141,6 +185,8 @@ cite.metric a
   text-align: center
   line-height: 10
   animation: outro 1s, loader 1.5s infinite
+
+
 
 @keyframes outro
   0%
@@ -185,3 +231,8 @@ cite.metric a
 
 .hidden, .hidden > *, .hidden > small
   display: none !important 
+
+.invis, .invis > *, .invis > small
+  z-index: -1;
+  opacity: 0 !important;
+

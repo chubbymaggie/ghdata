@@ -11,13 +11,18 @@ else:
 sys.path.append('..')
 
 import ghdata
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 import json
 
 GHDATA_API_VERSION = 'api/unstable'
 # Location to load configuration from
 CONFIG_BAD = False
+'''
+make a try and accept condition
+if its open the GH_DATA_ONFIG_FILE and then its open in read mode
+and if the file does't open the it print Couldn\'t open config file, attempting to create.
+'''
 
 try:
     GHDATA_CONFIG_FILE = open(os.getenv('GHDATA_CONFIG_FILE', 'ghdata.cfg'), 'r+')
@@ -125,6 +130,16 @@ dbstr = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
 )
 ghtorrent = ghdata.GHTorrent(dbstr=dbstr)
 
+
+dbstr = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
+    read_config('GHTorrentPlus', 'user', 'GHDATA_GHTORRENT_PLUS_USER', 'root'),
+    read_config('GHTorrentPlus', 'pass', 'GHDATA_GHTORRENT_PLUS_PASS', 'password'),
+    read_config('GHTorrentPlus', 'host', 'GHDATA_GHTORRENT_PLUS_HOST', '127.0.0.1'),
+    read_config('GHTorrentPlus', 'port', 'GHDATA_GHTORRENT_PLUS_PORT', '3306'),
+    read_config('GHTorrentPlus', 'name', 'GHDATA_GHTORRENT_PLUS_NAME', 'ghtorrentplus')
+)
+ghtorrentplus = ghdata.GHTorrentPlus(dbstr=dbstr, ghtorrent=ghtorrent)
+
 """
 @api {get} / API Status
 @apiName Status
@@ -147,13 +162,13 @@ def api_root():
 # @todo: Link to LF Metrics
 
 """
-@api {get} /:owner/:repo/commits/group_by=:group_by Commits
+@api {get} /:owner/:repo/timeseries/commits?group_by=:group_by Commits
 @apiName Commits
 @apiGroup Timeseries
 
 @apiParam {String} owner Username of the owner of the GitHub repository
 @apiParam {String} repo Name of the GitHub repository
-@apiParam {String} group_by (Default to Week) Allows for reseults to be grouped by day, week, month, or year
+@apiParam {String} group_by (Default to week) Allows for results to be grouped by day, week, month, or year
 
 @apiSuccessExample {json} Success-Response:
                     [
@@ -170,10 +185,30 @@ def api_root():
 addTimeseries(app, ghtorrent.commits, 'commits')
 
 """
-@api {get} /:owner/:repo/forks/group_by=:group_by Forks
+@api {get} /:owner/:repo/timeseries/commits/comments count of commit comments weekly
+@apiName CommitComments
+@apiGroup Timeseries
+
+@apiParam {String} owner Username of the owner of the GitHub repository
+@apiParam {String} repo Name of the GitHub repository
+
+@apiSuccessExample {json} Success-Response:
+                    [
+                        {   "date":"2009-02-16T00:00:00.000Z",
+                            "comments":1.0
+                        },
+                        {   "date":"2009-07-12T00:00:00.000Z",
+                            "comments":2.0
+                        },
+
+"""
+addTimeseries(app, ghtorrent.commit_comments, 'commits/comments')
+
+"""
+@api {get} /:owner/:repo/timeseries/forks?group_by=:group_by Forks
 @apiName Forks
 @apiGroup Timeseries
-@apiParam {String} group_by (Default to Week) Allows for reseults to be grouped by day, week, month, or year
+@apiParam {String} group_by (Default to week) Allows for results to be grouped by day, week, month, or year
 
 @apiParam {String} owner Username of the owner of the GitHub repository
 @apiParam {String} repo Name of the GitHub repository
@@ -193,10 +228,10 @@ addTimeseries(app, ghtorrent.commits, 'commits')
 addTimeseries(app, ghtorrent.forks, 'forks')
 
 """
-@api {get} /:owner/:repo/issues/group_by=:group_by Issues
+@api {get} /:owner/:repo/timeseries/issues?group_by=:group_by Issues
 @apiName Issues
 @apiGroup Timeseries
-@apiParam {String} group_by (Default to Week) Allows for reseults to be grouped by day, week, month, or year
+@apiParam {String} group_by (Default to week) Allows for results to be grouped by day, week, month, or year
 
 @apiParam {String} owner Username of the owner of the GitHub repository
 @apiParam {String} repo Name of the GitHub repository
@@ -216,7 +251,87 @@ addTimeseries(app, ghtorrent.forks, 'forks')
 addTimeseries(app, ghtorrent.issues, 'issues')
 
 """
-@api {get} /:owner/:repo/issues/response_time Issue Response Time
+@api {get} /:owner/:repo/timeseries/issues/activity
+@apiName Issues
+@apiGroup Timeseries
+
+@apiParam {String} owner Username of the owner of the GitHub repository
+@apiParam {String} repo Name of the GitHub repository
+
+@apiSuccessExample {json} Success-Response:
+                    [
+                        {
+                          "date": "2010-12-23T00:00:00.000Z",
+                          "count": 0.0,
+                          "action": "closed"
+                        },
+                        {
+                          "date": "2010-12-23T00:00:00.000Z",
+                          "count": 2.0,
+                          "action": "opened"
+                        },
+                        {
+                          "date": "2010-12-23T00:00:00.000Z",
+                          "count": 8.0,
+                          "action": "reopened"
+                        },
+                        {
+                          "date": "2010-12-23T00:00:00.000Z",
+                          "count": 12.0,
+                          "action": "open"
+                        }
+                    ]
+"""
+addTimeseries(app, ghtorrent.issue_activity, 'issues/activity')
+
+
+"""
+@api {get} /:owner/:repo/timeseries/issues/closed
+@apiName Issues
+@apiGroup Timeseries
+
+@apiParam {String} owner Username of the owner of the GitHub repository
+@apiParam {String} repo Name of the GitHub repository
+
+@apiSuccessExample {json} Success-Response:
+                [
+                    {
+                      "date": "2011-03-19T00:00:00.000Z",
+                      "issues_closed": 3
+                    },
+                    {
+                      "date": "2011-03-20T00:00:00.000Z",
+                      "issues_closed": 0
+                    }
+                ]
+"""
+addTimeseries(app, ghtorrent.issues_closed, "issues/closed")
+
+#TODO documentation
+addMetric(app, ghtorrentplus.issue_close_time, 'issue_close_time')
+
+"""
+@api {get} /:owner/:repo/timeseries/issue_comments count of new comments weekly
+@apiName uniqueCommenters
+@apiGroup Timeseries
+
+@apiParam {String} owner Username of the owner of the GitHub repository
+@apiParam {String} repo Name of the GitHub repository
+
+@apiSuccessExample {json} Success-Response:
+                    [
+                        {   "date":"2009-02-16T00:00:00.000Z",
+                            "total_unique_comments":1.0
+                        },
+                        {   "date":"2009-07-12T00:00:00.000Z",
+                            "total_unique_comments":2.0
+                        },
+                    ]
+"""
+addTimeseries(app, ghtorrent.issue_comments, 'issue/comments')
+
+"""
+@api {get} /:owner/:repo/timeseries/issues/response_time Issue Response Time
 @apiName IssueResponseTime
 @apiGroup Timeseries
 
@@ -235,10 +350,10 @@ addTimeseries(app, ghtorrent.issues, 'issues')
                         }
                     ]
 """
-addMetric(app, ghtorrent.issue_response_time, 'issues/response_time')
+addTimeseries(app, ghtorrent.issue_response_time, 'issues/response_time')
 
 """
-@api {get} /:owner/:repo/pulls Pull Requests by Week
+@api {get} /:owner/:repo/timeseries/pulls Pull Requests by Week
 @apiName PullRequestsByWeek
 @apiGroup Timeseries
 
@@ -262,30 +377,27 @@ addMetric(app, ghtorrent.issue_response_time, 'issues/response_time')
 addTimeseries(app, ghtorrent.pulls, 'pulls')
 
 """
-@api {get} /:owner/:repo/stargazers/group_by=:group_by Stargazers
-@apiName Stargazers
+@api {get} /:owner/:repo/timeseries/pull_request_comments count of new pull request comments weekly
+@apiName PullRequestComments
 @apiGroup Timeseries
 
 @apiParam {String} owner Username of the owner of the GitHub repository
 @apiParam {String} repo Name of the GitHub repository
-@apiParam {String} group_by (Default to Week) Allows for reseults to be grouped by day, week, month, or year
 
 @apiSuccessExample {json} Success-Response:
                     [
-                        {
-                            "date": "2015-01-01T00:00:00.000Z",
-                            "watchers": 133
+                        {   "date":"2009-02-16T00:00:00.000Z",
+                            "comments":1.0
                         },
-                        {
-                            "date": "2015-01-08T00:00:00.000Z",
-                            "watchers": 54
-                        }
-                    ]
-"""
-addTimeseries(app, ghtorrent.stargazers, 'stargazers')
+                        {   "date":"2009-07-12T00:00:00.000Z",
+                            "comments":2.0
+                        },
 
 """
-@api {get} /:owner/:repo/pulls/acceptance_rate Pull Request Acceptance Rate by Week
+addTimeseries(app, ghtorrent.pull_request_comments, 'pulls/comments')
+
+"""
+@api {get} /:owner/:repo/timeseries/pulls/acceptance_rate Pull Request Acceptance Rate by Week
 @apiDescription For each week, the rate is calculated as (pull requests merged that week) / (pull requests opened that week)
 @apiName PullRequestAcceptanceRate
 @apiGroup Timeseries
@@ -306,6 +418,100 @@ addTimeseries(app, ghtorrent.stargazers, 'stargazers')
                     ]
 """
 addTimeseries(app, ghtorrent.pull_acceptance_rate, 'pulls/acceptance_rate')
+
+"""
+@api {get} /:owner/:repo/timeseries/stargazers?group_by=:group_by Stargazers
+@apiName Stargazers
+@apiGroup Timeseries
+
+@apiParam {String} owner Username of the owner of the GitHub repository
+@apiParam {String} repo Name of the GitHub repository
+@apiParam {String} group_by (Default to week) Allows for results to be grouped by day, week, month, or year
+
+@apiSuccessExample {json} Success-Response:
+                    [
+                        {
+                            "date": "2015-01-01T00:00:00.000Z",
+                            "watchers": 133
+                        },
+                        {
+                            "date": "2015-01-08T00:00:00.000Z",
+                            "watchers": 54
+                        }
+                    ]
+"""
+addTimeseries(app, ghtorrent.stargazers, 'stargazers')
+
+"""
+@api {get} /:owner/:repo/watchers
+@apiName Community Engagement
+@apiGroup Users
+
+@apiParam {String} owner Username of the owner of the GitHub repository
+@apiParam {String} repo Name of the GitHub repository
+
+@apiSuccessExample {json} Success-Response:
+                    [
+                      {
+                        "watchers": 40349
+                      }
+                    ]
+"""
+addMetric(app, ghtorrent.watchers, 'watchers')
+
+"""
+@api {get} /:owner/:repo/timeseries/community_engagement
+@apiName Community Engagement
+@apiGroup Timeseries
+
+@apiParam {String} owner Username of the owner of the GitHub repository
+@apiParam {String} repo Name of the GitHub repository
+
+@apiSuccessExample {json} Success-Response:
+                    [
+                        {
+                          "date": "2009-04-01T00:00:00.000Z",
+                          "issues_opened": 1.0,
+                          "issues_closed": 0.0,
+                          "pull_requests_opened": 0.0,
+                          "pull_requests_merged": 0.0,
+                          "pull_requests_closed": 0.0,
+                          "issues_opened_total": 2.0,
+                          "issues_closed_total": 0.0,
+                          "issues_closed_rate_this_window": 0.0,
+                          "issues_closed_rate_total": 0.0,
+                          "issues_delta": 1.0,
+                          "issues_open": 2.0,
+                          "pull_requests_opened_total": 0.0,
+                          "pull_requests_closed_total": 0.0,
+                          "pull_requests_closed_rate_this_window": null,
+                          "pull_requests_closed_rate_total": null,
+                          "pull_requests_delta": 0.0,
+                          "pull_requests_open": 0.0
+                        },                       
+                        {
+                          "date": "2009-04-16T00:00:00.000Z",
+                          "issues_opened": 2.0,
+                          "issues_closed": 1.0,
+                          "pull_requests_opened": 1.0,
+                          "pull_requests_merged": 1.0,
+                          "pull_requests_closed": 1.0,
+                          "issues_opened_total": 3.0,
+                          "issues_closed_total": 5.0,
+                          "issues_closed_rate_this_window": 4.0,
+                          "issues_closed_rate_total": 6.0,
+                          "issues_delta": 1.0,
+                          "issues_open": 2.0,
+                          "pull_requests_opened_total": 3.0,
+                          "pull_requests_closed_total": 5.0,
+                          "pull_requests_closed_rate_this_window": null,
+                          "pull_requests_closed_rate_total": null,
+                          "pull_requests_delta": 2.0,
+                          "pull_requests_open": 1.0
+                        }                       
+                    ]
+"""
+addTimeseries(app, ghtorrent.community_engagement, 'community_engagement')
 
 """
 @api {get} /:owner/:repo/timeseries/tags Tags release timeseries
@@ -418,7 +624,7 @@ addMetric(app, ghtorrent.contributors, 'contributors')
 #######################
 
 """
-@api {get} /:owner/:repo/contributions Contributions by Week
+@api {get} /:owner/:repo/timeseries/contributions Contributions by Week
 @apiName ContributionsByWeek
 @apiGroup Timeseries
 
@@ -464,7 +670,7 @@ def contributions(owner, repo):
 
 """
 @api {get} /:owner/:repo/committer_locations Commits and Location by User
-@apiName CommiterLocations
+@apiName CommitterLocations
 @apiGroup Diversity
 
 @apiParam {String} owner Username of the owner of the GitHub repository
@@ -489,7 +695,7 @@ addMetric(app, ghtorrent.committer_locations, 'committer_locations')
 
 
 """
-@api {get} /:owner/:repo/community_age Timeline of events to determine the age of a community
+@api {get} /:owner/:repo/timeseries/community_age Timeline of events to determine the age of a community
 @apiName CommunityAge
 @apiGroup Timeseries
 
@@ -619,8 +825,8 @@ addMetric(app, librariesio.dependency_stats, 'dependency_stats')
 
 
 """
-@api {get} /:owner/:repo/unique_committers Count of new committers weekly
-@apiName UniqueCommiters
+@api {get} /:owner/:repo/timeseries/total_committers count of new committers weekly
+@apiName UniqueCommitters
 @apiGroup Timeseries
 
 @apiParam {String} owner Username of the owner of the GitHub repository
@@ -629,14 +835,15 @@ addMetric(app, librariesio.dependency_stats, 'dependency_stats')
 @apiSuccessExample {json} Success-Response:
                     [
                         {   "date":"2009-02-16T00:00:00.000Z",
-                            "total_unique_committers":1.0
+                            "total_total_committers":1.0
                         },
                         {   "date":"2009-07-12T00:00:00.000Z",
-                            "total_unique_committers":2.0
+                            "total_total_committers":2.0
                         },
                     ]
 """
-addTimeseries(app, ghtorrent.unique_committers, 'unique_committers')
+addTimeseries(app, ghtorrent.total_committers, 'total_committers')
+
 
 # Popularity
 """
@@ -681,7 +888,7 @@ def ghtorrent_range():
 
 """
 @api {get} /:owner/:repo/bus_factor Bus Factor
-@apiDescription Returns an integer that is the number of develpers that have a summed percentage of contributions higher than the threshold
+@apiDescription Returns an integer that is the number of developers that have a summed percentage of contributions higher than the threshold
 @apiName GitHub
 @apiGroup Users
 
@@ -691,14 +898,88 @@ def ghtorrent_range():
 @apiSuccessExample {json} Success-Response:
                     [
                         {
-                            "min_date": "2009-02-16T00:00:00.000Z",
-                            "max_date": "2017-02-16T00:00:00.000Z"
+                            "best": "5",
+                            "worst": "1"
                         }
                     ]
 """
 addMetric(app, github.bus_factor, 'bus_factor')
 
 
+
+
+#######################
+#   Batch Requests    #
+#######################
+
+"""
+@api {post} /batch Bus Factor
+@apiDescription Returns results of batch requests
+@apiName Batch
+@apiGroup Batch
+
+POST JSON of api requests
+"""
+#TODO: documentation
+@app.route('/{}/batch'.format(GHDATA_API_VERSION), methods=['GET', 'POST'])
+def batch():
+    """
+    Execute multiple requests, submitted as a batch.
+
+    :statuscode 207: Multi status
+    """
+    if request.method == 'GET':
+        """this will return sensible defaults in the future"""
+        return make_response('{"status": "501", "response": "Defaults for batch requests not implemented. Please POST a JSON array of requests to this endpoint for now."}', 501)
+
+    try:
+        requests = json.loads(request.data)
+    except ValueError as e:
+        abort(400)
+
+    responses = []
+
+    for index, req in enumerate(requests):
+        method = req['method']
+        path = req['path']
+        body = req.get('body', None)
+
+        with app.app_context():
+            with app.test_request_context(path, 
+                                          method=method, 
+                                          data=body):
+                try:
+                    # Can modify flask.g here without affecting 
+                    # flask.g of the root request for the batch
+
+                    # Pre process Request
+                    rv = app.preprocess_request()
+
+                    if rv is None:
+                        # Main Dispatch
+                        rv = app.dispatch_request()
+
+                except Exception as e:
+                    rv = app.handle_user_exception(e)
+
+                response = app.make_response(rv)
+
+                # Post process Request
+                response = app.process_response(response)
+
+        # Response is a Flask response object.
+        # _read_response(response) reads response.response 
+        # and returns a string. If your endpoints return JSON object,
+        # this string would be the response as a JSON string.
+        responses.append({
+            "path": path,
+            "status": response.status_code,
+            "response": str(response.get_data(), 'utf-8')
+        })
+
+    return Response(response=json.dumps(responses),
+                    status=207,
+                    mimetype="application/json")
 
 
 if (debugmode):

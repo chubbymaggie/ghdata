@@ -1,3 +1,4 @@
+import VueVega from 'vue-vega'
 const queryString = require('query-string')
 
 export default function GHData () {
@@ -9,10 +10,16 @@ export default function GHData () {
   window.GHDataRepos  = {}
   window.GHDataStats  = require('GHDataStats').default
   window.$            = window.jQuery
+  window._            = require('lodash')
+  window.d3           = require('d3')
+  window.VueVega      = VueVega
+  window.SvgSaver     = require('svgsaver')
 
   let GHDataApp = require('./components/GHDataApp')
 
   Vue.use(Vuex)
+  Vue.use(VueVega)
+  Vue.config.productionTip = false
 
   window.ghdata = new Vuex.Store({
     state: {
@@ -20,8 +27,10 @@ export default function GHData () {
       comparedRepos: [],
       trailingAverage: 180,
       startDate: new Date("1 January 2005"),
-      endDate: new Date(),
+      endDate: new Date(),  
       compare: "each",
+      showBelowAverage: false,
+      rawWeekly: false,
       byDate: false,
     },
     mutations: {
@@ -55,12 +64,20 @@ export default function GHData () {
         if (payload.endDate) {
           state.endDate = new Date(payload.endDate)
         }
-        if (payload.trailingAverage) {
-          state.trailingAverage = parseInt(payload.trailingAverage, 10)
-        }
       },
       setCompare (state, payload) {
         state.compare = payload.compare
+      },
+      setVizOptions (state, payload) {
+        if (payload.trailingAverage) {
+          state.trailingAverage = parseInt(payload.trailingAverage, 10)
+        }
+        if (typeof payload.rawWeekly !== 'undefined') {
+          state.rawWeekly = payload.rawWeekly
+        }
+        if (typeof payload.showBelowAverage !== 'undefined') {
+          state.showBelowAverage = payload.showBelowAverage
+        }
       },
       reset (state) {
         state = {

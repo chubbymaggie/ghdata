@@ -13,6 +13,8 @@ GHData is under heavy development; expect frequent backwards-incompatible change
 
 Roadmap
 -------
+This project is a software prototype implementation of CHAOSS Metrics. The process for defining new metrics is located here: https://github.com/chaoss/metrics 
+
 Our technical, outreach, and academic goals [roadmap](https://github.com/OSSHealth/ghdata/wiki/Release-Schedule).
 
 
@@ -31,7 +33,7 @@ Now, to install:
       ```
 
 
-2.  Configure the following environment variables:
+2.  Set the following variables in your environment:
 
     ```bash
     # Most likely required
@@ -48,9 +50,14 @@ Now, to install:
     GHDATA_GITHUB_API_KEY
     GHDATA_LIBRARIESIO_API_KEY
     GHDATA_DEBUG
+    GHDATA_GHTORRENT_PLUS_USER
+    GHDATA_GHTORRENT_PLUS_PASS
+    GHDATA_GHTORRENT_PLUS_HOST
+    GHDATA_GHTORRENT_PLUS_PORT
+    GHDATA_GHTORRENT_PLUS_NAME
     ```
 
-    docker-compose will automatically pass the relevant environment variables to the container.
+    docker-compose will automatically pass the relevant variables from the local environment to the container.
 
 
 3.  Build the container with `docker-compose build`
@@ -63,10 +70,11 @@ Installation without Docker (recommended for developers)
 ### Dependencies
 - Python 3.4.x/Python 2.7.x and `pip`
 - Static web server such as nginx or Apache
-- MySQL 5.x or later with the [GHTorrent database](http://ghtorrent.org/)
+- a MySQL 5.x database or later with the [GHTorrent database](http://ghtorrent.org/)
   - You can use the [MSR14 dataset](http://ghtorrent.org/msr14.html) for testing
   - Our Development team has a public read only database you can request access to
   - If you want to install your own copy of the MSR14 dataset [Installation instructions](https://github.com/gousiosg/github-mirror/tree/master/sql)
+- a MySQL 5.x database with write access
 
 After restoring GHTorrent (or msr14) to MySQL, it is recommended you create a user for GHData. GHData only needs `SELECT` privileges.
 
@@ -120,17 +128,13 @@ For futher instructions on how to add to GHData, here are guides to adding an en
 
 Frontend development guide coming soon!
 
-You're good to go.
-
-In one shell, you'll want to run `ghdata`, in another run `cd frontend/ && brunch watch -s`.
-
-If you have GNU Screen installed. this can be done automatically using `make dev-start`.
+You're good to go. You can start a single instance of the API by running `ghdata`. Run `make dev-start` to start both the Brunch server and Gunicorn server for full-stack development.
 
 The screen sessions can be killed with `make dev-stop`
 
 License and Copyright
 ---------------------
-Copyright © 2017 University of Nebraska at Omaha and the University of Missouri
+Copyright © 2018 University of Nebraska at Omaha, University of Missouri and CHAOSS Project at the Linux Foundation
 
 GHData is free software: you can redistribute it and/or modify it under the terms of the MIT License as published by the Open Source Initiative. See the file [LICENSE](LICENSE) for more details.
 
